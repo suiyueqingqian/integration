@@ -10,24 +10,28 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-hassfest:
     runs-on: ubuntu-latest
     name: With hassfest
     steps:
     - name: 📥 Checkout the repository
-      uses: actions/checkout@v3.1.0
+      uses: actions/checkout@v3.3.0
 
     - name: 🏃 Hassfest validation
       uses: "home-assistant/actions/hassfest@master"
 
     - name: 📨 Discord notification
       if: ${{ github.event_name == 'schedule' && failure() }}
-      env:
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
-      uses: Ilshidur/action-discord@0.3.2
-      with:
-        args: "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"
+      run: |
+        curl \
+          -H "Content-Type: application/json" \
+          -d '{"username": "GitHub action failure", "content": "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"}' \
+          ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
 
   validate-hacs:
     runs-on: ubuntu-latest
@@ -40,26 +44,26 @@ jobs:
 
     - name: 📨 Discord notification
       if: ${{ github.event_name == 'schedule' && failure() }}
-      env:
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
-      uses: Ilshidur/action-discord@0.3.2
-      with:
-        args: "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"
+      run: |
+        curl \
+          -H "Content-Type: application/json" \
+          -d '{"username": "GitHub action failure", "content": "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"}' \
+          ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
 
   validate-homeassistant:
     name: With Home Assistant
     strategy:
       matrix:
-        channel: [stable, beta, dev, "2022.10.0"]
+        channel: [stable, beta, dev, "2022.11.0"]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v3.3.0
 
       - name: 📋 Copy sample configuration for Home Assistant
         run: |
           mkdir ./test_configuration
-          bash manage/install_frontend
+          bash scripts/install/frontend
           cp -r ./custom_components ./test_configuration
           echo "default_config:" >> ./test_configuration/configuration.yaml
           echo "hacs:" >> ./test_configuration/configuration.yaml
@@ -74,8 +78,8 @@ jobs:
 
       - name: 📨 Discord notification
         if: ${{ github.event_name == 'schedule' && failure() }}
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
-        uses: Ilshidur/action-discord@0.3.2
-        with:
-          args: "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"
+        run: |
+          curl \
+            -H "Content-Type: application/json" \
+            -d '{"username": "GitHub action failure", "content": "[Scheduled action failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"}' \
+            ${{ secrets.DISCORD_WEBHOOK_ACTION_FAILURE }}
