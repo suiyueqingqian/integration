@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   matrix:
     runs-on: ubuntu-latest
@@ -15,64 +19,44 @@ jobs:
     strategy:
       matrix:
         check:
-          - pyupgrade
-          - black
-          - codespell
+          - check-ast
           - check-executables-have-shebangs
           - check-json
-          - requirements-txt-fixer
-          - check-ast
+          - codespell
+          - isort
           - mixed-line-ending
+          - pyupgrade
+          - requirements-txt-fixer
+          - ruff-check
+          - ruff-format
     steps:
-      - name: 📥 Checkout the repository
-        uses: actions/checkout@v3.1.0
+      - name: Checkout the repository
+        uses: actions/checkout@v4.2.2
 
-      - name: 🛠️ Set up Python
-        uses: actions/setup-python@v4.3.1
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
         id: python
         with:
-          python-version: "3.x"
+          python-version: "3.12"
           cache: 'pip'
+          cache-dependency-path: |
+            requirements_base.txt
+            requirements_lint.txt
 
-      - name: 📦 Install pre-commit
+      - name: Install dependencies
         run: |
-          python3 -m pip install pre-commit
+          scripts/install/pip_packages --requirement requirements_lint.txt
           pre-commit install-hooks --config .github/pre-commit-config.yaml
 
-      - name: 🏃 Run the check (${{ matrix.check }})
-        run: pre-commit run --hook-stage manual ${{ matrix.check }} --all-files --config .github/pre-commit-config.yaml
-
-  lint-custom:
-    runs-on: ubuntu-latest
-    name: With bellybutton
-    steps:
-    - name: 📥 Checkout the repository
-      uses: actions/checkout@v3.1.0
-
-    - name: 🛠️ Set up Python
-      uses: actions/setup-python@v4.3.1
-      with:
-        python-version: "3.x"
-        cache: 'pip'
-
-    - name: 📦 Install dependencies
-      run:  make requirements
-
-    - name: ✅ Add problem matcher
-      run: echo "::add-matcher::.github/matchers/bellybutton.json"
-
-    - name: 🏃 Run validation
-      run: bellybutton lint
+      - name: Run the check (${{ matrix.check }})
+        run: pre-commit run --show-diff-on-failure --hook-stage manual ${{ matrix.check }} --all-files --config .github/pre-commit-config.yaml
 
   lint-json:
     runs-on: ubuntu-latest
     name: With JQ
     steps:
-    - name: 📥 Checkout the repository
-      uses: actions/checkout@v3.1.0
+    - name: Checkout the repository
+      uses: actions/checkout@v4.2.2
 
-    - name: 📦 Install dependencies
-      run:  make requirements
-
-    - name: 🏃 Run validation
+    - name: Run validation
       run: jq -r -e -c . tests/fixtures/*.json

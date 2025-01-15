@@ -1,4 +1,5 @@
 """Constants for HACS"""
+
 from typing import TypeVar
 
 from aiogithubapi.common.const import ACCEPT_HEADERS
@@ -16,6 +17,8 @@ PACKAGE_NAME = "custom_components.hacs"
 
 DEFAULT_CONCURRENT_TASKS = 15
 DEFAULT_CONCURRENT_BACKOFF_TIME = 1
+
+HACS_REPOSITORY_ID = "172733314"
 
 HACS_ACTION_GITHUB_API_HEADERS = {
     "User-Agent": "HACS/action",
